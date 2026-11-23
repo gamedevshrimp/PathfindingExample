@@ -1,8 +1,3 @@
---- grid.lua
---- The coordinate system of a map. 
---- Provides the functions for working with a map.
---- The world origin (0, 0) is at the bottom-left corner of the map.
---- X increases from left to right, while Z decreases from bottom to top.
 local M = {}
 
 M.WIDTH = 50

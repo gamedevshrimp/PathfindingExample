@@ -1,5 +1,3 @@
---- navigation.lua
-
 local grid = require "main.modules.grid"
 local M = {}
 
@@ -52,7 +50,6 @@ end
 
 --- Creates the empty map
 ---@return table map The empty map
----return schema { world = {...}, scan_index = 1, finished = false }
 function M.begin_scan()
 	local map = {}
 	map.cells = {}

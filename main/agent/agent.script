@@ -31,6 +31,9 @@ local function setup_astar()
 	})
 end
 
+--- Calculates a path from the agent's current position to the goal.
+--- @param self table Agent script state
+--- @return boolean|nil True if a path was found, false if the search failed
 local function find_path(self)
 	self.has_path = false
 	self.path = {}
@@ -97,7 +100,9 @@ local function find_path(self)
 	return false
 end
 
-
+--- Checks whether the goal has moved to a different grid cell.
+--- Recalculates the path if the goal's cell has changed.
+--- @param self table Agent script state
 local function check_goal_position(self)
 	local goal_position = go.get_position(GOAL)
 	local goal_cell = grid.world_to_cell(goal_position)
@@ -110,6 +115,8 @@ local function check_goal_position(self)
 	end
 end
 
+--- Draws the current path using debug lines.
+--- @param self table Agent script state
 local function draw_path(self)
 	if not self.path or #self.path < 2 then
 		return
@@ -124,6 +131,9 @@ local function draw_path(self)
 	end
 end
 
+--- Moves the agent towards the current waypoint.
+--- @param self table Agent script state
+--- @param dt number Delta time since the previous update
 local function move_agent(self, dt)
 	if self.path_index > #self.path then
 		self.has_path = false
