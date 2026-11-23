@@ -1,170 +1,18 @@
-local grid = require "main.modules.grid"
-local navigation = require "main.modules.navigation"
+local POINTS = {
+	vmath.vector3(45, 0, 45),
+	vmath.vector3(5, 0, 45),
+	vmath.vector3(5, 0, 5),
+	vmath.vector3(45, 0, 5),
+}
+local DURATION = 5
 
-
-go.property("goal_position", vmath.vector3(48.5, 0, -1.5))
-go.property("move_speed", 4)
-
-local function setup_astar()
-	astar.setup(
-		grid.COLUMNS,
-		grid.ROWS,
-		astar.DIRECTION_EIGHT,
-		grid.COLUMNS * grid.ROWS,
-		8,
-		true, -- Cash paths
-		false, -- Index from 1
-		false -- no flip the map
-	)
-
-	astar.set_costs({
-		[0] = {
-			1.0, -- east
-			1.0, -- north
-			1.0, -- west
-			1.0, -- south
-
-			1.4142, -- north-east
-			1.4142, -- north-west
-			1.4142, -- south-west
-			1.4142 -- suth-east
-		}
-	})
-end
-
-local function find_path(self)
-	local start_position = go.get_position()
-
-	local start_cell = grid.world_to_cell(start_position)
-	local goal_cell = grid.world_to_cell(self.goal_position)
-
-	if not start_cell or not goal_cell then
-		return
-	end
-
-	if not start_cell.x or not goal_cell.x then
-		print("ERROR: Start or goal outside navigation map!")
-		return false
-	end
-
-	local start_index = grid.get_index(
-		start_cell.x,
-		start_cell.z
-	)
-
-	local goal_index = grid.get_index(goal_cell.x, goal_cell.z)
-
-	if self.scan.cells[start_index] ~= 0 then
-		print("ERROR: Agent starts inside an obstacle!")
-
-		return false
-	end
-
-	if self.scan.cells[goal_index] ~= 0 then
-		print("ERROR: Goal is blocked!")
-
-		return false
-	end
-
-	print("Searching path:" .. start_cell.x .. start_cell.z .. "->" .. goal_cell.x .. goal_cell.z)
-	local status, size, total_cost, path = astar.solve(start_cell.x, start_cell.z, goal_cell.x, goal_cell.z)
-
-	if status == astar.SOLVED then
-		print("PATH FOUND!")
-		print("Path size:", size)
-		print("Path cost:", total_cost)
-
-		self.path = {}
-
-		for i, tile in ipairs(path) do
-			-- Преобразуем клетку в мировую позицию.
-			local position = grid.cell_to_world(
-				tile.x,
-				tile.y
-			)
-
-			position.y = start_position.y
-
-			self.path[i] = position
-		end
-
-		self.path_index = 1
-		self.has_path = true
-
-		return true
-	elseif status == astar.NO_SOLUTION then
-		print("NO PATH FOUND!")
-
-		return false
-	elseif status == astar.START_END_SAME then
-		print("Agent is already at destination!")
-
-		return false
-	end
-
-	print("Unknown A* status:", status)
-	return false
-end
-
-
-local function move_agent(self, dt)
-	if self.path_index > #self.path then
-		self.has_path = false
-		print("DESTINATION REACHED!")
-		return
-	end
-
-	local position = go.get_position()
-	local target = self.path[self.path_index]
-	local direction = target - position
-	local distance = vmath.length(direction)
-
-	local step = self.move_speed * dt
-
-	if distance <= step then
-		go.set_position(target)
-		self.path_index = self.path_index + 1
-	else
-		direction = direction / distance
-		position = position + direction * step
-
-		go.set_position(position)
-	end
+local function move_to_next(self)
+	self.point_index = self.point_index % #POINTS + 1
+	go.animate(".", "position", go.PLAYBACK_ONCE_FORWARD, POINTS[self.point_index],
+		go.EASING_LINEAR, DURATION, 0, move_to_next)
 end
 
 function init(self)
-	assert(astar ~= nil, "A* extension is not loaded!")
-	setup_astar()
-	self.scan = navigation.begin_scan()
-	self.map_ready = false
-	self.has_path = false
-	self.path = {}
-	self.path_index = 1
-
-	print("Navigation scanning started!")
-end
-
-function update(self, dt)
-	-- Build the map
-	if not self.map_ready then
-		local finished = navigation.scan_step(self.scan)
-
-		if finished then
-			print("Navigation map is ready!")
-			astar.set_map(self.scan.cells)
-			-- astar.print_map()
-			self.map_ready = true
-			find_path(self)
-		end
-		return
-	end
-
-	-- Move the agent
-	if self.has_path then
-		move_agent(self, dt)
-	end
-end
-
-function final(self)
-	astar.reset()
+	self.point_index = 0
+	move_to_next(self)
 end
