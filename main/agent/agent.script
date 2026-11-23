@@ -32,16 +32,20 @@ local function setup_astar()
 end
 
 local function find_path(self)
+	self.has_path = false
+	self.path = {}
+	self.path_index = 1
+	
 	local start_position = go.get_position()
 	local start_cell = grid.world_to_cell(start_position)
 	local goal_position = go.get_position(GOAL)
-	local goal_cell = grid.world_to_cell(goal_position)
+	self.goal_cell = grid.world_to_cell(goal_position)
 
-	if not start_cell or not goal_cell then
+	if not start_cell or not self.goal_cell then
 		return
 	end
 
-	if not start_cell.x or not goal_cell.x then
+	if not start_cell.x or not self.goal_cell.x then
 		print("ERROR: Start or goal outside navigation map!")
 		return false
 	end
@@ -51,7 +55,7 @@ local function find_path(self)
 		start_cell.z
 	)
 
-	local goal_index = grid.get_index(goal_cell.x, goal_cell.z)
+	local goal_index = grid.get_index(self.goal_cell.x, self.goal_cell.z)
 
 	if self.scan.cells[start_index] ~= 0 then
 		print("ERROR: Agent starts inside an obstacle!")
@@ -65,14 +69,11 @@ local function find_path(self)
 		return false
 	end
 
-	print("Searching path:" .. start_cell.x .. start_cell.z .. "->" .. goal_cell.x .. goal_cell.z)
-	local status, size, total_cost, path = astar.solve(start_cell.x, start_cell.z, goal_cell.x, goal_cell.z)
+	print("Searching path:" .. start_cell.x .. start_cell.z .. "->" .. self.goal_cell.x .. self.goal_cell.z)
+	local status, size, total_cost, path = astar.solve(start_cell.x, start_cell.z, self.goal_cell.x, self.goal_cell.z)
 
 	if status == astar.SOLVED then
 		print("PATH FOUND!")
-		print("Path size:", size)
-		print("Path cost:", total_cost)
-
 		self.path = {}
 
 		for i, tile in ipairs(path) do
@@ -96,19 +97,31 @@ local function find_path(self)
 	return false
 end
 
+
+local function check_goal_position(self)
+	local goal_position = go.get_position(GOAL)
+	local goal_cell = grid.world_to_cell(goal_position)
+	if not self.goal_cell
+		or not goal_cell
+		or self.goal_cell.x ~= goal_cell.x
+		or self.goal_cell.z ~= goal_cell.z then
+		self.goal_cell = goal_cell
+		find_path(self)
+	end
+end
+
 local function draw_path(self)
 	if not self.path or #self.path < 2 then
 		return
 	end
 
-	for index = 1, #self.path -1 do
+	for index = 1, #self.path - 1 do
 		msg.post("@render:", "draw_line", {
 			start_point = self.path[index],
 			end_point = self.path[index + 1],
 			color = vmath.vector4(1, 0, 0, 1)
 		})
 	end
-	
 end
 
 local function move_agent(self, dt)
@@ -128,6 +141,7 @@ local function move_agent(self, dt)
 	if distance <= step then
 		go.set_position(target)
 		self.path_index = self.path_index + 1
+		check_goal_position(self)
 	else
 		direction = direction / distance
 		position = position + direction * step
