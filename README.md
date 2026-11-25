@@ -4,7 +4,7 @@ This example shows how to generate a navigation grid by scanning physical object
 and use the result for pathfinding with the A* algorithm.
 
 #### The example uses the extention [A* Path Finding](https://defold.com/assets/apathfinding/)
-#### [Demo](https://demo3dtopdownpathfinding.vercel.app/)
+#### [Demo](https://gamedevshrimp.github.io/demo_3d_top_down_pathfinding/)
 
 <img width="500" height="374" alt="pathfinding" src="https://github.com/user-attachments/assets/fa38d193-0705-4c86-8d3f-4aac16044cf1" />
 
